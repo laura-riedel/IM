@@ -10,6 +10,10 @@ import torch
 # import pytorch_lightning as pl
 # from pytorch_lightning.loggers import CSVLogger
 
+# visualisation
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 ##################################################################################
 
 ### SAVING THINGS
@@ -22,7 +26,7 @@ def save_data_info(path, datamodule):
     # create data_info directory
     os.makedirs(path+'data_info', exist_ok=True)
     # save overview dataframe as csv
-    datamodule.data.labels.to_csv(path+'data_info/overview.csv')
+    datamodule.data.labels.to_csv(path+'data_info/overview.csv', index=False)
     # save train/val/test indices as integers ('%i') in csv
     np.savetxt(path+'data_info/train_idx.csv', datamodule.train_idx, fmt='%i')
     np.savetxt(path+'data_info/val_idx.csv', datamodule.val_idx, fmt='%i')
