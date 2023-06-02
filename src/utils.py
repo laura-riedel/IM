@@ -121,5 +121,5 @@ def plot_training(data, yscale='log', title=''):
     # set scale and title
     visualisation.set(yscale=yscale)
     plt.title(title)
-    plt.plot()
+    plt.show()
     
