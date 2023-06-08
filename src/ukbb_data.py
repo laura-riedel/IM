@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 from scipy.stats import zscore
-# import math
+import math
 
 # PyTorch modules
 import torch
@@ -103,11 +103,10 @@ class UKBBDataModule(pl.LightningDataModule):
         self.data_path = data_path
         self.all_data = all_data
         self.batch_size = batch_size
-        # increase reproducibility by setting a generator + seeds
-        self.seed = seed
-        utils.seed_everything(self.seed)
+        # increase reproducibility by setting a generator 
+        utils.seed_everything(seed)
         self.g = torch.Generator()
-        self.g.manual_seed(self.seed)   
+        self.g.manual_seed(seed)
         
     def get_split_index(self, split_ratio, dataset_size):
         return int(np.floor(split_ratio * dataset_size))
@@ -129,9 +128,9 @@ class UKBBDataModule(pl.LightningDataModule):
         remain_split_index = self.get_split_index(0.5, len(remain_idx))
         self.val_idx, self.test_idx = remain_idx[:remain_split_index], remain_idx[remain_split_index:]
         
-        self.train_sampler = SubsetRandomSampler(self.train_idx)
-        self.val_sampler = SubsetRandomSampler(self.val_idx)
-        self.test_sampler = SubsetRandomSampler(self.test_idx)
+        self.train_sampler = SubsetRandomSampler(self.train_idx, generator=self.g)
+        self.val_sampler = SubsetRandomSampler(self.val_idx, generator=self.g)
+        self.test_sampler = SubsetRandomSampler(self.test_idx, generator=self.g)
     
     def general_dataloader(self, data_part, data_sampler):
         data_loader = DataLoader(

@@ -14,8 +14,6 @@ import torch
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-##################################################################################
-
 ### SAVING THINGS
 def save_data_info(path, datamodule):
     """
@@ -39,6 +37,19 @@ def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
+    
+# define a function for easier set-up
+def make_reproducible(random_state=43):
+    """
+    Function that calls on 'seed_everything' to set seeds for pseudo-random number generators
+    and that enforeces more deterministic behaviour in torch.
+    Input:
+        random_state: seed to set
+    """
+    seed_everything(seed=random_state, workers=True)
+    torch.backends.cudnn.benchmark = False
+    torch.use_deterministic_algorithms(True)
+    torch.backends.cudnn.deterministic = True
 
 # copy seed_everything function provided in Lightning vers. 1.6.3 that is not 
 # available anymore in 2.0.2 from 
@@ -94,8 +105,11 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
 
     return seed
 
+# call reproducibility function
+make_reproducible()
+
 #### VISUALISATIONS
-def get_metrics(trainer, show=False):
+def get_current_metrics(trainer, show=False):
     """
     Gets the metrics of a current trainer object (aka the training + validation information
     of the trained with the trainer) and returns them in a dataframe.
@@ -111,6 +125,29 @@ def get_metrics(trainer, show=False):
         display(metrics.dropna(axis=1, how='all').head())
     return metrics
 
+def get_saved_metrics(logging_path, show=False):
+    """
+    Gets the metrics of saved training + validation information
+    and returns them in a dataframe.
+    """
+    metrics = pd.read_csv(f'{logging_path}metrics.csv')
+    # set epoch as index
+    metrics.set_index('epoch', inplace=True)
+    # move step to first position
+    step = metrics.pop('step')
+    metrics.insert(0, 'step', step)
+    # display first 5 rows if required
+    if show:
+        display(metrics.dropna(axis=1, how='all').head())
+    return metrics
+
+def load_datainfo(path_to_data_info, info_type):
+    if info_type.endswith('idx'):
+        info = np.loadtxt(path_to_data_info+'data_info/'+info_type+'.csv', dtype='int')
+    else:
+        info = pd.read_csv(path_to_data_info+'data_info/overview.csv')
+    return info
+
 def plot_training(data, yscale='log', title=''):
     """
     Plots the training process of a model. 
@@ -122,4 +159,4 @@ def plot_training(data, yscale='log', title=''):
     visualisation.set(yscale=yscale)
     plt.title(title)
     plt.show()
-    
+

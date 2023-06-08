@@ -3,6 +3,9 @@ import torch
 from torch import optim, nn
 import pytorch_lightning as pl
 
+# own utils module
+import utils
+
 ################################################################################################
 
 # define LightningModule
