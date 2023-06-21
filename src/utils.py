@@ -148,13 +148,17 @@ def load_datainfo(path_to_data_info, info_type):
         info = pd.read_csv(path_to_data_info+'data_info/overview.csv')
     return info
 
-def plot_training(data, yscale='log', title=''):
+def plot_training(data, yscale='log', title='', xmin=None, xmax=None):
     """
     Plots the training process of a model. 
     Expects the metrics_df from get_metrics as input.
     """
+    if xmin == None:
+        xmin = data.index.min()
+    if xmax == None:
+        xmax = data.index.max()
     # only include train + validation values in plot
-    visualisation = sns.relplot(data=data.loc[:,:'val_mae'], kind='line')
+    visualisation = sns.relplot(data=data.loc[xmin:xmax,'train_loss':'val_mae'], kind='line')
     # set scale and title
     visualisation.set(yscale=yscale)
     plt.title(title)
