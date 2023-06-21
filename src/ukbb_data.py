@@ -104,9 +104,9 @@ class UKBBDataModule(pl.LightningDataModule):
         self.all_data = all_data
         self.batch_size = batch_size
         # increase reproducibility by setting a generator 
-        utils.seed_everything(seed)
-        self.g = torch.Generator()
+        self.g = torch.Generator() # device='cuda'
         self.g.manual_seed(seed)
+        utils.make_reproducible(seed)
         
     def get_split_index(self, split_ratio, dataset_size):
         return int(np.floor(split_ratio * dataset_size))
@@ -137,6 +137,8 @@ class UKBBDataModule(pl.LightningDataModule):
                         data_part,
                         batch_size = self.batch_size,
                         sampler = data_sampler,
+                        pin_memory = True, ##
+                        # num_workers = 1, ##
                         # drop_last=False,
                         worker_init_fn = utils.seed_worker,
                         generator = self.g,

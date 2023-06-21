@@ -15,28 +15,29 @@ class simple1DCNN(pl.LightningModule):
     (i.e., regresses) a participant's age.
     Input:
         channels: number of ICA components.
-        filters: number of filters that are applied.
+        kernel_size: width of the kernel that is applied.
         activation: activation function to be used.
         loss: loss to be used.
         lr: learning rate to be used.
     Output:
         A model.
     """
-    def __init__(self, channels=25, filters=5, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-4):
+    def __init__(self, channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-4):
         super().__init__()
         self.in_channels = channels
-        self.filters = filters
+        self.kernel_size = kernel_size
         self.act = activation
         self.loss = loss
         self.lr = lr
         self.save_hyperparameters()
+        utils.make_reproducible()        
         
         # define convolutional and maxpool layers
-        self.conv1 = nn.Conv1d(self.in_channels, 32, kernel_size=self.filters)
-        self.conv2 = nn.Conv1d(32, 64, kernel_size=self.filters)
-        self.conv3 = nn.Conv1d(64, 128, kernel_size=self.filters)
-        self.conv4 = nn.Conv1d(128, 256, kernel_size=self.filters)
-        self.maxpool = nn.MaxPool1d(kernel_size=self.filters, stride=2)
+        self.conv1 = nn.Conv1d(self.in_channels, 32, kernel_size=self.kernel_size)
+        self.conv2 = nn.Conv1d(32, 64, kernel_size=self.kernel_size)
+        self.conv3 = nn.Conv1d(64, 128, kernel_size=self.kernel_size)
+        self.conv4 = nn.Conv1d(128, 256, kernel_size=self.kernel_size)
+        self.maxpool = nn.MaxPool1d(kernel_size=self.kernel_size, stride=2)
                 
         # define model architecture
         self.model = nn.Sequential(self.conv1,
