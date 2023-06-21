@@ -49,5 +49,5 @@ loss: !!python/object:torch.nn.modules.loss.MSELoss
   - []
   reduction: mean
   training: true
-lr: 0.0001
+lr: 0.001
 seed: 43

@@ -21,11 +21,11 @@ activation: !!python/object:torch.nn.modules.activation.ReLU
   - []
   inplace: false
   training: true
-all_data: false
+all_data: true
 batch_size: 128
 channels: 25
 data_path: /ritter/share/data/UKBB/ukb_data/
-filters: 5
+kernel_size: 5
 loss: !!python/object:torch.nn.modules.loss.MSELoss
   _backward_hooks: !!python/object/apply:collections.OrderedDict
   - []
