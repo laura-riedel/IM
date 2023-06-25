@@ -138,7 +138,7 @@ class UKBBDataModule(pl.LightningDataModule):
                         batch_size = self.batch_size,
                         sampler = data_sampler,
                         pin_memory = True, ##
-                        # num_workers = 1, ##
+                        num_workers = 0, ##
                         # drop_last=False,
                         worker_init_fn = utils.seed_worker,
                         generator = self.g,

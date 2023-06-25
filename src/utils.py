@@ -7,8 +7,9 @@ from typing import Any, Dict, Generator, Optional
 
 # Pytorch etc
 import torch
-# import pytorch_lightning as pl
-# from pytorch_lightning.loggers import CSVLogger
+import pytorch_lightning as pl
+from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
 # visualisation
 import matplotlib.pyplot as plt
@@ -50,6 +51,7 @@ def make_reproducible(random_state=43):
     torch.backends.cudnn.benchmark = False
     torch.use_deterministic_algorithms(True)
     torch.backends.cudnn.deterministic = True
+    torch.cuda.manual_seed(random_state)
 
 # copy seed_everything function provided in Lightning vers. 1.6.3 that is not 
 # available anymore in 2.0.2 from 
@@ -107,6 +109,37 @@ def seed_everything(seed: Optional[int] = None, workers: bool = False) -> int:
 
 # call reproducibility function
 make_reproducible()
+
+#### MODEL INITIALISATION
+# logger
+def logger_init(save_dir):
+    logger = CSVLogger(save_dir=save_dir, name='Logs')
+    return logger
+
+# callbacks
+def checkpoint_init(save_dir):
+    checkpoint = ModelCheckpoint(dirpath=save_dir+'Checkpoint/',
+                                 filename='models-{epoch:02d}-{val_loss:.2f}',
+                                 monitor='val_loss',
+                                 save_top_k=1,
+                                 mode='min')
+    return checkpoint
+
+def earlystopping_init(patience=15):
+    early_stopping = EarlyStopping(monitor='val_loss',
+                                   patience=patience)
+    return early_stopping
+
+# initialise trainer
+def trainer_init(device, logger, log_steps=10, max_epochs=175, callbacks=[]):
+    trainer = pl.Trainer(accelerator='gpu',
+                         devices=[device], 
+                         logger=logger,
+                         log_every_n_steps=log_steps,
+                         max_epochs=max_epochs,
+                         callbacks=callbacks,
+                         deterministic=True)
+    return trainer
 
 #### VISUALISATIONS
 def get_current_metrics(trainer, show=False):
