@@ -15,17 +15,16 @@ class simple1DCNN(pl.LightningModule):
     (i.e., regresses) a participant's age.
     Input:
         channels: number of ICA components.
-        kernel_size: width of the kernel that is applied.
         activation: activation function to be used.
         loss: loss to be used.
         lr: learning rate to be used.
     Output:
-        A model.
+        A trained model.
     """
-    def __init__(self, channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-3):
+    def __init__(self, channels=25, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-3):
         super().__init__()
         self.in_channels = channels
-        self.kernel_size = kernel_size
+        self.kernel_size = 5
         self.act = activation
         self.loss = loss
         self.lr = lr
@@ -99,7 +98,7 @@ class variable1DCNN(pl.LightningModule):
     """
     1D Convolutional Neural Network (CNN) that takes ICA timeseries as input and predicts
     (i.e., regresses) a participant's age.
-    Inspired by simple1DCNN but with setup that enables easy depth and channel modification.
+    Inspired by simple1DCNN but with setup that enables easy kernel, depth and channel modification.
     Input:
         channels: number of ICA components.
         kernel_size: width of the kernel that is applied.
@@ -111,7 +110,7 @@ class variable1DCNN(pl.LightningModule):
     Output:
         A model.
     """
-    def __init__(self, channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-4, depth=4, start_out=32):
+    def __init__(self, channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-3, depth=4, start_out=32):
         super().__init__()
         self.in_channels = channels
         self.kernel_size = kernel_size
@@ -123,20 +122,19 @@ class variable1DCNN(pl.LightningModule):
         self.save_hyperparameters()
         utils.make_reproducible()        
         
-        # define convolutional and maxpool layers
-        self.conv1 = nn.Conv1d(self.in_channels, self.start_out, kernel_size=self.kernel_size)
-        self.conv2 = nn.Conv1d(32, 64, kernel_size=self.kernel_size)
-        self.conv3 = nn.Conv1d(64, 128, kernel_size=self.kernel_size)
-        self.conv4 = nn.Conv1d(128, 256, kernel_size=self.kernel_size)
-        
+        # define maxpool layer
         self.maxpool = nn.MaxPool1d(kernel_size=self.kernel_size, stride=2)
                 
         # define model architecture
+        # encoder
         channel = self.start_out
         self.encoder = nn.Sequential()
+        # add X sequences of convolutional layer, activation + maxpool
         for layer in range(self.depth):
-            if layer == 1:
+            # treat first layer a bit differently
+            if layer == 0:
                 conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size)
+            # all other layers
             else:
                 new_channel = channel*2
                 conv_layer = nn.Conv1d(channel, new_channel, kernel_size=self.kernel_size)
@@ -146,28 +144,22 @@ class variable1DCNN(pl.LightningModule):
             self.encoder.append(conv_layer)
             self.encoder.append(self.act)
             self.encoder.append(self.maxpool)
+        # add a final flatten layer at the end
         self.encoder.append(nn.Flatten())
-            
-       # self.encoder = nn.Sequential(self.conv1,
-        #                            self.act,
-         #                           self.maxpool,
-          #                          self.conv2,
-           #                         self.act,
-            #                        self.maxpool,
-             #                       self.conv3,
-              #                      self.act,
-               #                     self.maxpool,
-                #                    self.conv4,
-                 #                   self.act,
-                  #                  self.maxpool,
-                   #                 nn.Flatten()
-                    #                )
+        
+        # decoder
+        flattened_dimension = self.get_flattened_dimension(self.encoder)
+        self.decoder = nn.Linear(flattened_dimension, 1)
+
+    def get_flattened_dimension(self, model):
+        input = torch.randn(10, self.in_channels, 490)
+        x = model(input)
+        return x.size(1)
     
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions          
-        self.encoder(x)
-        size = x.size(1)
-        return nn.Linear(size,1)
+        x = self.encoder(x)
+        return self.decoder(x)
         
     def training_step(self, batch, batch_idx): 
         # training_step defines the train loop, independent of forward
