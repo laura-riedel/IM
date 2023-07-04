@@ -53,7 +53,6 @@ class simple1DCNN(pl.LightningModule):
                                     self.maxpool,
                                     nn.Flatten(),
                                     nn.Linear(6144,1)
-                                    # dropout?
                                     )
     
     def forward(self, x):
@@ -105,12 +104,19 @@ class variable1DCNN(pl.LightningModule):
         activation: activation function to be used.
         loss: loss to be used.
         lr: learning rate to be used.
-        depth: model depth (number of convolutional layers)
-        start_out: output dimensionality for first convolutional layer that will be scaled up
+        depth: model depth (number of convolutional layers).
+        start_out: output dimensionality for first convolutional layer that will be scaled up.
+        stride: stride for MaxPool layers.
+        weight_decay: weight decay for optimiser.
+        dropout: boolean flag to turn dropout on or off.
+        double_conv: boolean flag to turn on or off whether to have two conv layers before pooling.
+        batch_norm: boolean flag to turn batch normalisation on or off.
     Output:
         A model.
     """
-    def __init__(self, in_channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-3, depth=4, start_out=32):
+    def __init__(self, in_channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), 
+                 lr=1e-3, depth=4, start_out=32, stride=2, weight_decay=0,
+                 dropout=False, double_conv=False, batch_norm=False):
         super().__init__()
         self.in_channels = in_channels
         self.kernel_size = kernel_size
@@ -119,11 +125,16 @@ class variable1DCNN(pl.LightningModule):
         self.lr = lr
         self.depth = depth
         self.start_out = start_out
+        self.stride = stride
+        self.dropout = dropout
+        self.weight_decay = weight_decay
+        self.double_conv = double_conv
+        self.batch_norm = batch_norm
         self.save_hyperparameters()
         utils.make_reproducible()        
         
         # define maxpool layer
-        self.maxpool = nn.MaxPool1d(kernel_size=self.kernel_size, stride=2)
+        self.maxpool = nn.MaxPool1d(kernel_size=self.kernel_size, stride=self.stride)
                 
         # define model architecture
         # encoder
@@ -142,7 +153,27 @@ class variable1DCNN(pl.LightningModule):
                 channel = new_channel
             # append to list
             self.encoder.append(conv_layer)
+            # add BatchNorm if flag = True
+            if self.batch_norm:
+                self.encoder.append(nn.BatchNorm1d(channel))
             self.encoder.append(self.act)
+            # add dropout if flag = True
+            if self.dropout:
+                self.encoder.append(nn.Dropout1d(p=0.2))
+            # add second conv layer if flag = True (complete with activation (+ BatchNorm + dropout))
+            if self.double_conv:
+                new_channel = channel*2
+                conv_layer_2 = nn.Conv1d(channel, new_channel, kernel_size=self.kernel_size)
+                # update output channel size again as new input channel size
+                channel = new_channel
+                # append to encoder
+                self.encoder.append(conv_layer_2)
+                if self.batch_norm:
+                    self.encoder.append(nn.BatchNorm1d(channel))
+                self.encoder.append(self.act)
+                if self.dropout:
+                self.encoder.append(nn.Dropout1d(p=0.2))
+            # add MaxPool layer
             self.encoder.append(self.maxpool)
         # add a final flatten layer at the end
         self.encoder.append(nn.Flatten())
@@ -201,5 +232,5 @@ class variable1DCNN(pl.LightningModule):
         self.evaluate(batch, 'test')
     
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=self.lr) # weight decay 
+        optimizer = optim.AdamW(self.parameters(), lr=self.lr, weight_decay=self.weight_decay) 
         return optimizer
