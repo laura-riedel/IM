@@ -21,9 +21,9 @@ class simple1DCNN(pl.LightningModule):
     Output:
         A trained model.
     """
-    def __init__(self, channels=25, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-3):
+    def __init__(self, in_channels=25, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-3):
         super().__init__()
-        self.in_channels = channels
+        self.in_channels = in_channels
         self.kernel_size = 5
         self.act = activation
         self.loss = loss
@@ -110,9 +110,9 @@ class variable1DCNN(pl.LightningModule):
     Output:
         A model.
     """
-    def __init__(self, channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-3, depth=4, start_out=32):
+    def __init__(self, in_channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), lr=1e-3, depth=4, start_out=32):
         super().__init__()
-        self.in_channels = channels
+        self.in_channels = in_channels
         self.kernel_size = kernel_size
         self.act = activation
         self.loss = loss
@@ -152,6 +152,15 @@ class variable1DCNN(pl.LightningModule):
         self.decoder = nn.Linear(flattened_dimension, 1)
 
     def get_flattened_dimension(self, model):
+        """Function to figure out the dimension after nn.Flatten()
+        so that it can be fed into the linear layer.
+        Takes a given model, creates dummy input, and checks the
+        dimensions after the input has gone through the model.
+        Input:
+            model: a (sequential) model architecture
+        Output:
+            input dimension size for linear layer
+        """
         input = torch.randn(10, self.in_channels, 490)
         x = model(input)
         return x.size(1)
@@ -192,5 +201,5 @@ class variable1DCNN(pl.LightningModule):
         self.evaluate(batch, 'test')
     
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=self.lr) 
+        optimizer = optim.AdamW(self.parameters(), lr=self.lr) # weight decay 
         return optimizer
