@@ -99,7 +99,7 @@ class variable1DCNN(pl.LightningModule):
     (i.e., regresses) a participant's age.
     Inspired by simple1DCNN but with setup that enables easy kernel, depth and channel modification.
     Input:
-        channels: number of ICA components.
+        in_channels: number of ICA components.
         kernel_size: width of the kernel that is applied.
         activation: activation function to be used.
         loss: loss to be used.
