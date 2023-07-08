@@ -125,6 +125,12 @@ def checkpoint_init(save_dir):
                                  mode='min')
     return checkpoint
 
+def wandb_checkpoint_init():
+    checkpoint = ModelCheckpoint(monitor='val_loss',
+                                 save_top_k=1,
+                                 mode='min')
+    return checkpoint
+
 def earlystopping_init(patience=15):
     early_stopping = EarlyStopping(monitor='val_loss',
                                    patience=patience)

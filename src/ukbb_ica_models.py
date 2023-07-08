@@ -108,15 +108,17 @@ class variable1DCNN(pl.LightningModule):
         start_out: output dimensionality for first convolutional layer that will be scaled up.
         stride: stride for MaxPool layers.
         weight_decay: weight decay for optimiser.
-        dropout: boolean flag to turn dropout on or off.
+        dilation: spacing between the kernel points.
+        conv_dropout: optional dropout after each conv layer.
+        final_dropout: optional final dropout before linear layer.
         double_conv: boolean flag to turn on or off whether to have two conv layers before pooling.
         batch_norm: boolean flag to turn batch normalisation on or off.
     Output:
         A model.
     """
     def __init__(self, in_channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), 
-                 lr=1e-3, depth=4, start_out=32, stride=2, weight_decay=0,
-                 dropout=False, double_conv=False, batch_norm=False):
+                 lr=1e-3, depth=4, start_out=32, stride=2, weight_decay=0, dilation=1,
+                 conv_dropout=0, final_dropout=0, double_conv=False, batch_norm=False):
         super().__init__()
         self.in_channels = in_channels
         self.kernel_size = kernel_size
@@ -126,8 +128,10 @@ class variable1DCNN(pl.LightningModule):
         self.depth = depth
         self.start_out = start_out
         self.stride = stride
-        self.dropout = dropout
+        self.conv_dropout = conv_dropout
+        self.final_dropout = final_dropout
         self.weight_decay = weight_decay
+        self.dilation = dilation
         self.double_conv = double_conv
         self.batch_norm = batch_norm
         self.save_hyperparameters()
@@ -144,11 +148,11 @@ class variable1DCNN(pl.LightningModule):
         for layer in range(self.depth):
             # treat first layer a bit differently
             if layer == 0:
-                conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size)
+                conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size, dilation=self.dilation)
             # all other layers
             else:
                 new_channel = channel*2
-                conv_layer = nn.Conv1d(channel, new_channel, kernel_size=self.kernel_size)
+                conv_layer = nn.Conv1d(channel, new_channel, kernel_size=self.kernel_size, dilation=self.dilation)
                 # set output channel size as new input channel size
                 channel = new_channel
             # append to list
@@ -157,9 +161,9 @@ class variable1DCNN(pl.LightningModule):
             if self.batch_norm:
                 self.encoder.append(nn.BatchNorm1d(channel))
             self.encoder.append(self.act)
-            # add dropout if flag = True
-            if self.dropout:
-                self.encoder.append(nn.Dropout1d(p=0.2))
+            # add dropout if wanted
+            if self.conv_dropout:
+                self.encoder.append(nn.Dropout1d(p=self.conv_dropout))
             # add second conv layer if flag = True (complete with activation (+ BatchNorm + dropout))
             if self.double_conv:
                 new_channel = channel*2
@@ -171,16 +175,25 @@ class variable1DCNN(pl.LightningModule):
                 if self.batch_norm:
                     self.encoder.append(nn.BatchNorm1d(channel))
                 self.encoder.append(self.act)
-                if self.dropout:
-                self.encoder.append(nn.Dropout1d(p=0.2))
-            # add MaxPool layer
-            self.encoder.append(self.maxpool)
+                if self.conv_dropout:
+                    self.encoder.append(nn.Dropout1d(p=self.conv_dropout))
+            # add pooling layer
+            if layer == self.depth-1:
+                # average pooling after last conv layer
+                self.encoder.append(nn.AvgPool1d(self.kernel_size, self.stride))
+            else:
+                # normally maxpool
+                self.encoder.append(self.maxpool)
         # add a final flatten layer at the end
         self.encoder.append(nn.Flatten())
         
         # decoder
         flattened_dimension = self.get_flattened_dimension(self.encoder)
-        self.decoder = nn.Linear(flattened_dimension, 1)
+        self.decoder = nn.Sequential()
+        # add dropout if wanted
+        if self.final_dropout:
+            self.decoder.append(nn.Dropout1d(p=self.final_dropout))
+        self.decoder.append(nn.Linear(flattened_dimension, 1))
 
     def get_flattened_dimension(self, model):
         """Function to figure out the dimension after nn.Flatten()
@@ -208,7 +221,7 @@ class variable1DCNN(pl.LightningModule):
         y = torch.unsqueeze(y,1)
         loss = self.loss(y_hat, y)
         
-        self.log('train_loss', loss)
+        self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
         return loss
     
     def evaluate(self, batch, stage=None):
@@ -219,8 +232,8 @@ class variable1DCNN(pl.LightningModule):
         mae = nn.functional.l1_loss(y_hat, y)
         
         if stage:
-            self.log(f'{stage}_loss', loss)
-            self.log(f'{stage}_mae', mae)
+            self.log(f'{stage}_loss', loss, on_step=True, on_epoch=True, logger=True)
+            self.log(f'{stage}_mae', mae, on_step=True, on_epoch=True, logger=True)
             
         if stage == 'val':
             return {"val_loss": loss, "diff": (y - y_hat), "target": y, 'mae': mae}
