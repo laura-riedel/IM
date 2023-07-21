@@ -5,10 +5,10 @@ Script for running models with Weights & Biases.
 import torch
 from torch import optim, nn
 import pytorch_lightning as pl
-from pytorch_lightning.loggers import WandbLogger
+#from pytorch_lightning.loggers import WandbLogger
 
 # Weights and Biases, argparse
-import wandb
+#import wandb
 import argparse
  
 # import data + model modules
@@ -25,12 +25,15 @@ parser = argparse.ArgumentParser(prog='RunVariableCNN',
                                 epilog='Training + testing complete.')
 # wandb setup
 parser.add_argument('project', type=str, help='Enter the name of the current Weights & Biases project.')
+parser.add_argument('tags', type=list, help='Enter tags to help classify this run in the future. Expects list of strings.')
 
 # trainer setup
 # accelerator + devices?
+# parser.add_argument()
 parser.add_argument('-log_steps', type=int, default=10, help='Enter after how many steps a logging shall take place. Default: 10')
 parser.add_argument('-max_epochs', type=int, default=175, help='Enter maximum amount of epochs the model is allowed to train. Default: 175')
-parser.add_argument()
+parser.add_argument('-patience', type=int, default=15, help='Enter number of epochs the model continues to train without improving the validation loss without calling early stopping. Defautl: 15')
+
 
 # model hyperparameters
 parser.add_argument('-in_channels', type=int, default=25, help='Enter number of ICA components. Default: 25')
@@ -50,47 +53,59 @@ parser.add_argument('-batch_norm', type=bool, default=False, help='Enter boolean
 
 args = parser.parse_args()
 
-project = parser.project
+project = args.project
+tags = args.tags
 
-log_steps = parser.log_steps
-max_epochs = parser.max_epochs
+log_steps = args.log_steps
+max_epochs = args.max_epochs
+patience = args.patience
 
-in_channels = parser.in_channels
-kernel_size = parser.kernel_size
-activation = parser.activation
-loss = parser.loss
-lr = parser.lr
-depth = parser.depth
-start_out = parser.start_out
-stride = parser.stride
-weight_decay = parser.weight_decay
-dilation = parser.dilation
-conv_dropout = parser.conv_dropout
-final_dropout = parser.final_dropout
-double_conv = parser.double_conv
-batch_norm = parser.batch_norm
+in_channels = args.in_channels
+kernel_size = args.kernel_size
+activation = args.activation
+loss = args.loss
+lr = args.lr
+depth = args.depth
+start_out = args.start_out
+stride = args.stride
+weight_decay = args.weight_decay
+dilation = args.dilation
+conv_dropout = args.conv_dropout
+final_dropout = args.final_dropout
+double_conv = args.double_conv
+batch_norm = args.batch_norm
 
 ######################################################################################
 # initialise W&B run
-wandb.init() # brauche ich das mit PL?
+#wandb.init(project=project, 
+#           tags=tags) # brauche ich das mit PL?
+
 
 # increase reproducibility
 utils.make_reproducible()
 
+# make sure only one CPU thread is used
+#torch.set_num_threads(1)
+
 # initialise logger
-wandb_logger = WandbLogger(project=project,
-                          run=, #?
-                          log_model=, #True? all? best?
-                          )
+#wandb_logger = WandbLogger(project=project,
+#                          #run=, #?
+#                          log_model='all', #True? all? best?
+#                          )
+# initialise logger
+path = '../tracking/ICA25/ModelDepth1DCNN/terminaltest'
+logger = utils.logger_init(save_dir=path)
 
 # initialise callbacks
-checkpoint = utils.wandb_checkpoint_init()
-early_stopping = utils.earlystopping_init()
+# checkpoint = utils.wandb_checkpoint_init()
+checkpoint = utils.checkpoint_init(save_dir=path)
+early_stopping = utils.earlystopping_init(patience=patience)
 
 # initialise trainer
-trainer = pl.Trainer(accelerator='gpu', ### ADAPT
-                     devices=[device], 
-                     logger=wandb_logger,
+trainer = pl.Trainer(accelerator='gpu', 
+                     devices=[1],
+                     #logger=wandb_logger,
+                     logger=logger,
                      log_every_n_steps=log_steps,
                      max_epochs=max_epochs,
                      callbacks=[checkpoint, early_stopping],
@@ -122,4 +137,5 @@ trainer.fit(variable_CNN, datamodule=datamodule)
 trainer.test(ckpt_path='best', datamodule=datamodule)
 
 # end wandb
-wandb.finish()
+# not necessary in a scipt
+#wandb.finish()

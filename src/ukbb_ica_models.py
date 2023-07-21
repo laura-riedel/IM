@@ -148,11 +148,11 @@ class variable1DCNN(pl.LightningModule):
         for layer in range(self.depth):
             # treat first layer a bit differently
             if layer == 0:
-                conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size, dilation=self.dilation)
+                conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size) #, dilation=self.dilation
             # all other layers
             else:
                 new_channel = channel*2
-                conv_layer = nn.Conv1d(channel, new_channel, kernel_size=self.kernel_size, dilation=self.dilation)
+                conv_layer = nn.Conv1d(channel, new_channel, kernel_size=self.kernel_size) #, dilation=self.dilation
                 # set output channel size as new input channel size
                 channel = new_channel
             # append to list
@@ -221,7 +221,7 @@ class variable1DCNN(pl.LightningModule):
         y = torch.unsqueeze(y,1)
         loss = self.loss(y_hat, y)
         
-        self.log('train_loss', loss, on_step=True, on_epoch=True, logger=True)
+        self.log('train_loss', loss) #, on_step=True, on_epoch=True, logger=True
         return loss
     
     def evaluate(self, batch, stage=None):
@@ -232,8 +232,8 @@ class variable1DCNN(pl.LightningModule):
         mae = nn.functional.l1_loss(y_hat, y)
         
         if stage:
-            self.log(f'{stage}_loss', loss, on_step=True, on_epoch=True, logger=True)
-            self.log(f'{stage}_mae', mae, on_step=True, on_epoch=True, logger=True)
+            self.log(f'{stage}_loss', loss) #, on_step=True, on_epoch=True, logger=True
+            self.log(f'{stage}_mae', mae) #, on_step=True, on_epoch=True, logger=True
             
         if stage == 'val':
             return {"val_loss": loss, "diff": (y - y_hat), "target": y, 'mae': mae}

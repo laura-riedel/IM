@@ -1,0 +1,8 @@
+program: run_variableCNN.py
+method: grid
+metric:
+    goal: minimize
+    name: val_loss
+parameters:
+    dropout:
+        value: []

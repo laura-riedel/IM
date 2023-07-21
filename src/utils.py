@@ -147,6 +147,54 @@ def trainer_init(device, logger, log_steps=10, max_epochs=175, callbacks=[]):
                          deterministic=True)
     return trainer
 
+#### SWEEP FUNCTION
+# define a run function
+def model_run(config=None):
+    # initialise W&B run
+    with wandb.init(config=config):
+        # if called by wandb.agent, 
+        # this config will be set by Sweep Controller
+        config = wandb.config
+
+        # initialise logger
+        wandb_logger = WandbLogger(project=config.project,
+                                  tags=['all components'], # 'best components'
+                                  log_model=True, # logs at the end of training
+                                  )
+
+        # initialise callbacks
+        checkpoint = utils.wandb_checkpoint_init()
+        early_stopping = utils.earlystopping_init(patience=config.patience)
+
+        # initialise trainer
+        trainer = pl.Trainer(accelerator='cpu', 
+                             logger=wandb_logger,
+                             log_every_n_steps=config.log_steps,
+                             max_epochs=config.max_epochs,
+                             callbacks=[checkpoint, early_stopping],
+                             deterministic=True)
+
+        # initialise DataModule
+        datamodule = ukbb_data.UKBBDataModule('/ritter/share/data/UKBB/ukb_data/')
+
+        # initialise model
+        variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=config.in_channels,
+                                            kernel_size=config.kernel_size,
+                                            lr=config.lr,
+                                            depth=config.depth,
+                                            start_out=config.start_out,
+                                            stride=config.stride,
+                                            conv_dropout=config.conv_dropout,
+                                            final_dropout=config.final_dropout,
+                                            weight_decay=config.weight_decay,
+                                            dilation=config.dilation,
+                                            double_conv=config.double_conv,
+                                            batch_norm=config.batch_norm)
+
+        # train model
+        trainer.fit(variable_CNN, datamodule=datamodule)
+
+
 #### VISUALISATIONS
 def get_current_metrics(trainer, show=False):
     """
