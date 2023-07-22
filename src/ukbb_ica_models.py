@@ -113,12 +113,14 @@ class variable1DCNN(pl.LightningModule):
         final_dropout: optional final dropout before linear layer.
         double_conv: boolean flag to turn on or off whether to have two conv layers before pooling.
         batch_norm: boolean flag to turn batch normalisation on or off.
+        execution: whether model is called from a Jupyter Notebook ('nb') or the terminal ('t'). 
+                    Teriminal call cannot handle dilation. Default: 'nb'.
     Output:
         A model.
     """
     def __init__(self, in_channels=25, kernel_size=5, activation=nn.ReLU(), loss=nn.MSELoss(), 
                  lr=1e-3, depth=4, start_out=32, stride=2, weight_decay=0, dilation=1,
-                 conv_dropout=0, final_dropout=0, double_conv=False, batch_norm=False):
+                 conv_dropout=0, final_dropout=0, double_conv=False, batch_norm=False, execution='nb'):
         super().__init__()
         self.in_channels = in_channels
         self.kernel_size = kernel_size
@@ -134,6 +136,7 @@ class variable1DCNN(pl.LightningModule):
         self.dilation = dilation
         self.double_conv = double_conv
         self.batch_norm = batch_norm
+        self.execution = execution
         self.save_hyperparameters()
         utils.make_reproducible()        
         
@@ -148,11 +151,22 @@ class variable1DCNN(pl.LightningModule):
         for layer in range(self.depth):
             # treat first layer a bit differently
             if layer == 0:
-                conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size) #, dilation=self.dilation
+                if self.execution == 'nb':
+                    # Jupyter Notebook can handle dilation
+                    conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size, dilation=self.dilation)
+                else: 
+                    # terminal cannot handle dilation
+                    conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size)
+
             # all other layers
             else:
                 new_channel = channel*2
-                conv_layer = nn.Conv1d(channel, new_channel, kernel_size=self.kernel_size) #, dilation=self.dilation
+                if self.execution == 'nb':
+                    # Jupyter Notebook can handle dilation
+                    conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size, dilation=self.dilation)
+                else: 
+                    # terminal cannot handle dilation
+                    conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size)
                 # set output channel size as new input channel size
                 channel = new_channel
             # append to list
