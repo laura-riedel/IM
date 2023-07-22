@@ -53,7 +53,8 @@ parameters:
     batch_norm:
         values: [True, False]
 command:
-  - /home/laurar/anaconda3/envs/cuda02
+  #- /home/laurar/anaconda3/envs/cuda02
+  - ${env}
   - python3
   - ${program}
   - ${args}
