@@ -19,13 +19,34 @@ import utils
 
 class UKBBDataset(Dataset):
     """
-    Dataset class that prepares ICA25 timeseries of rs-fMRI data from the UKBioBank.
+    Dataset class that prepares ICA timeseries of rs-fMRI data from the UKBioBank.
+    Input:
+        data_path: path to ukb_data directory (ukb_data included). E.g. 'ritter/share/data/UKBB/ukb_data'.
+        ica: whether to load ICA25 ('25') or ICA100 ('100'). Expects string. Default: 25.
+        good_components: boolean flag to indicate whether to use only the good components or all components. Default: False.
+        good_components_path: path to where the UKBB good components txts are saved. Necessary if good components are used.
+        all_data: boolean flag to indicate whether to use all data or only a subset of 100 samples. Default: True.
     """
-    def __init__(self, data_path, all_data=True):
-        # save data path
+    def __init__(self, data_path, ica='25', good_components=False, good_components_path='', all_data=True):
+        # save data path + settings
         self.data_path = data_path
+        self.ica = ica
+        self.good_components = good_components
+        self.good_components_path = good_components_path
         self.all_data = all_data
-        
+
+        # catch ica error
+        if ica != '25' and ica != '100':
+            # ERROR MESSAGE ODER SO
+            pass
+
+        # get indices of good components
+        if good_components:
+            if ica == '25':
+                self.good_components_idx = np.loadtxt(good_components_path+'rfMRI_GoodComponents_d25_v1.txt', dtype=int)
+            else:
+                self.good_components_idx = np.loadtxt(good_components_path+'rfMRI_GoodComponents_d100_v1.txt', dtype=int)
+            
         # META INFORMATION
         # get target information (age)
         age_df = pd.read_csv(self.data_path+'table/targets/age.tsv', sep='\t', names=['age'])
@@ -38,9 +59,10 @@ class UKBBDataset(Dataset):
         # first ids and age
         meta_df = pd.concat([ids_df, age_df], axis=1)
         # merge with location info based on eid
-        meta_df = meta_df.merge(location_df[['eid','rfmri_ica25_ts']], on='eid', how='left')
+        location_column = 'rfmri_ica'+self.ica+'_ts'
+        meta_df = meta_df.merge(location_df[['eid',location_column]], on='eid', how='left')
         # limit df to available ICA25 data points
-        meta_df = meta_df[meta_df['rfmri_ica25_ts'].isna()==False]
+        meta_df = meta_df[meta_df[location_column].isna()==False]
         # reset index
         meta_df = meta_df.reset_index(drop=True, inplace=False)
         
@@ -77,8 +99,14 @@ class UKBBDataset(Dataset):
         #                            return_type='filename')
         
         # load + standardise timeseries
-        ## crop longer input to 490 rows
-        timeseries = np.loadtxt(ts_path, max_rows=490)
+        ## if good_components = True, only load good components
+        if self.good_components:
+            timeseries = np.loadtxt(ts_path, 
+                                    usecols=tuple(self.good_components_idx),
+                                    max_rows=490) # crop longer input to 490 rows
+        else:
+            timeseries = np.loadtxt(ts_path, 
+                                    max_rows=490) # crop longer input to 490 rows
         ## change axes ([components, time points])
         timeseries = np.swapaxes(timeseries, 1, 0)
         ## 
@@ -95,12 +123,15 @@ class UKBBDataset(Dataset):
 class UKBBDataModule(pl.LightningDataModule):
     """
     Pytorch Lightning style DataModule class that prepares 
-    & loads ICA25 timeseries of rs-fMRI data from the UKBioBank.
+    & loads ICA timeseries of rs-fMRI data from the UKBioBank.
     """
-    def __init__(self, data_path, all_data=True, batch_size=128, seed=43): 
+    def __init__(self, data_path, ica='25', good_components=False, good_components_path='', all_data=True, batch_size=128, seed=43): 
         super().__init__()
         self.save_hyperparameters()
         self.data_path = data_path
+        self.ica = ica
+        self.good_components = good_components
+        self.good_components_path = good_components_path
         self.all_data = all_data
         self.batch_size = batch_size
         # increase reproducibility by setting a generator 
@@ -114,7 +145,7 @@ class UKBBDataModule(pl.LightningDataModule):
     def setup(self, stage=None):
         # runs on all GPUs
         # load data
-        self.data = UKBBDataset(self.data_path, self.all_data)
+        self.data = UKBBDataset(self.data_path, self.ica, self.good_components, self.good_components_path, self.all_data)
         
         # split data      
         # create indices
