@@ -1,8 +1,61 @@
-program: run_variableCNN.py
-method: grid
+program: train.py
+method: bayes
+project: ICA25_good_components
 metric:
     goal: minimize
     name: val_loss
 parameters:
-    dropout:
-        value: []
+    # dataset set-up
+    ica:
+        value: '25'
+    good_components:
+        value: True
+    # training set-up
+    max_epochs:
+        value: 200
+    log_steps:
+        value: 10
+    patience:
+        value: 15
+    activation:
+        value: torch.nn.ReLU()
+    loss:
+        value: torch.nn.MSELoss()
+    # model parameters
+    in_channels:
+        value: 21 # only good components
+    kernel_size:
+        distribution: int_uniform
+        min: 2
+        max: 15
+    lr:
+        distribution: log_uniform_values
+        min: 1e-2
+        max: 1e-6
+    depth:
+        distribution: int_uniform
+        min: 1
+        max: 10
+    start_out:
+        values: [8,16,32,64,128]
+    stride:
+        distribution: int_uniform
+        min: 2
+        max: 5
+    weight_decay:
+        distribution: log_uniform_values
+        min: 0
+        max: 1
+    conv_dropout:
+        values: [0, 0.1, 0.2, 0.3, 0.4]
+    final_dropout:
+        values: [0, 0.4, 0.5, 0.6, 0.7]
+    double_conv:
+        values: [True, False]
+    batch_norm:
+        values: [True, False]
+command:
+  - /home/laurar/anaconda3/envs/cuda02
+  - python3
+  - ${program}
+  - ${args}
