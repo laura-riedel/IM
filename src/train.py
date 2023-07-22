@@ -33,7 +33,7 @@ with wandb.init(wandb_project_name):
     torch.set_num_threads(1)
 
     # initialise logger
-    wandb_logger = WandbLogger(project=config.project,
+    wandb_logger = WandbLogger(project=wandb_project_name,
                             log_model='all', #True? all? best?
                             )
 
