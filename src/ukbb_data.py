@@ -46,6 +46,8 @@ class UKBBDataset(Dataset):
                 self.good_components_idx = np.loadtxt(good_components_path+'rfMRI_GoodComponents_d25_v1.txt', dtype=int)
             else:
                 self.good_components_idx = np.loadtxt(good_components_path+'rfMRI_GoodComponents_d100_v1.txt', dtype=int)
+        # component numbering starts at 1, not at 0
+        self.good_components_idx = self.good_components_idx-1
             
         # META INFORMATION
         # get target information (age)
