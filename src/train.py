@@ -50,10 +50,10 @@ with wandb.init(wandb_project_name):
                         deterministic=True)
 
     # initialise DataModule
-    datamodule = ukbb_data.UKBBDataModule('/ritter/share/data/UKBB/ukb_data/', # data path
-                                        config.ica,
-                                        config.good_components,
-                                        '../data/') # good components path
+    datamodule = ukbb_data.UKBBDataModule(data_path='/ritter/share/data/UKBB/ukb_data/',
+                                        ica=config.ica,
+                                        good_components=config.good_components,
+                                        good_components_path='../data/') 
 
     # initialise model
     variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=config.in_channels,
