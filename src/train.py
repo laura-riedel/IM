@@ -58,8 +58,8 @@ with wandb.init(wandb_project_name):
     # initialise model
     variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=config.in_channels,
                                                 kernel_size=config.kernel_size,
-                                                activation=config.activation,
-                                                loss=config.loss,
+                                                # activation=config.activation,
+                                                # loss=config.loss,
                                                 lr=config.lr,
                                                 depth=config.depth,
                                                 start_out=config.start_out,

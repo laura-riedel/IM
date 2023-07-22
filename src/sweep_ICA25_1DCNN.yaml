@@ -17,10 +17,10 @@ parameters:
         value: 10
     patience:
         value: 15
-    activation:
-        value: torch.nn.ReLU()
-    loss:
-        value: torch.nn.MSELoss()
+    # activation:
+    #     value: torch.nn.ReLU()
+    # loss:
+    #     value: torch.nn.MSELoss()
     # model parameters
     in_channels:
         value: 21 # only good components
