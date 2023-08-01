@@ -94,8 +94,7 @@ trainer = pl.Trainer(accelerator='cpu',
 # initialise DataModule
 datamodule = ukbb_data.UKBBDataModule('/ritter/share/data/UKBB/ukb_data/', # data path
                                       args.ica,
-                                      args.good_components,
-                                      '../data/') # good components path
+                                      args.good_components)
 
 # initialise model
 variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=args.in_channels,
