@@ -151,46 +151,19 @@ class variable1DCNN(pl.LightningModule):
         for layer in range(self.depth):
             # treat first layer a bit differently
             if layer == 0:
-                if self.execution == 'nb':
-                    # Jupyter Notebook can handle dilation
-                    conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size, dilation=self.dilation)
-                else: 
-                    # terminal cannot handle dilation
-                    conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size)
-
+                self.add_conv_layer(self.in_channels, channel)
             # all other layers
             else:
                 new_channel = channel*2
-                if self.execution == 'nb':
-                    # Jupyter Notebook can handle dilation
-                    conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size, dilation=self.dilation)
-                else: 
-                    # terminal cannot handle dilation
-                    conv_layer = nn.Conv1d(self.in_channels, channel, kernel_size=self.kernel_size)
+                self.add_conv_layer(channel, new_channel)
                 # set output channel size as new input channel size
                 channel = new_channel
-            # append to list
-            self.encoder.append(conv_layer)
-            # add BatchNorm if flag = True
-            if self.batch_norm:
-                self.encoder.append(nn.BatchNorm1d(channel))
-            self.encoder.append(self.act)
-            # add dropout if wanted
-            if self.conv_dropout:
-                self.encoder.append(nn.Dropout1d(p=self.conv_dropout))
             # add second conv layer if flag = True (complete with activation (+ BatchNorm + dropout))
             if self.double_conv:
                 new_channel = channel*2
-                conv_layer_2 = nn.Conv1d(channel, new_channel, kernel_size=self.kernel_size)
+                self.add_conv_layer(channel, new_channel)
                 # update output channel size again as new input channel size
                 channel = new_channel
-                # append to encoder
-                self.encoder.append(conv_layer_2)
-                if self.batch_norm:
-                    self.encoder.append(nn.BatchNorm1d(channel))
-                self.encoder.append(self.act)
-                if self.conv_dropout:
-                    self.encoder.append(nn.Dropout1d(p=self.conv_dropout))
             # add pooling layer
             if layer == self.depth-1:
                 # average pooling after last conv layer
@@ -208,6 +181,33 @@ class variable1DCNN(pl.LightningModule):
         if self.final_dropout:
             self.decoder.append(nn.Dropout1d(p=self.final_dropout))
         self.decoder.append(nn.Linear(flattened_dimension, 1))
+        
+    def add_conv_layer(self, in_channel, out_channel):
+        """ Function to add a convolutional layer and activation function
+        (and optionally BatchNorm and conv dropout) to encoder architecture.
+        Input:
+            in_channel: input channel dimension.
+            out_channel: output channel dimension.
+        """
+        if self.execution == 'nb':
+            # Jupyter Notebook can handle dilation
+            conv_layer = nn.Conv1d(in_channel, out_channel, kernel_size=self.kernel_size, dilation=self.dilation)
+        else: 
+            # terminal cannot handle dilation
+            conv_layer = nn.Conv1d(in_channel, out_channel, kernel_size=self.kernel_size)
+        # append to list
+        self.encoder.append(conv_layer)
+        
+        # add BatchNorm if flag = True
+        if self.batch_norm:
+            self.encoder.append(nn.BatchNorm1d(out_channel))
+            
+        # add activation to encoder
+        self.encoder.append(self.act)
+        
+        # add dropout if wanted
+        if self.conv_dropout:
+            self.encoder.append(nn.Dropout1d(p=self.conv_dropout))
 
     def get_flattened_dimension(self, model):
         """Function to figure out the dimension after nn.Flatten()
