@@ -1,6 +1,6 @@
 program: train.py
 method: bayes
-project: ICA100_all_components
+project: ICA100_good_components
 metric:
     goal: minimize
     name: best_val_loss
@@ -9,7 +9,7 @@ parameters:
     ica:
         value: '100'
     good_components:
-        value: False
+        value: True
     # training set-up
     max_epochs:
         value: 175
@@ -19,7 +19,7 @@ parameters:
         value: 15
     # model parameters
     in_channels:
-        value: 100 # all components
+        value: 55 # only good components
     kernel_size:
         distribution: int_uniform
         min: 2

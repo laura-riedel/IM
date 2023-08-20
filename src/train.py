@@ -21,9 +21,7 @@ import utils
 
 ###################
 
-wandb_project_name = 'ICA25_good_components'
-
-with wandb.init(wandb_project_name):
+with wandb.init(): # project name set through yaml
     config = wandb.config
 
     # increase reproducibility
@@ -33,12 +31,10 @@ with wandb.init(wandb_project_name):
     torch.set_num_threads(1)
 
     # initialise logger
-    wandb_logger = WandbLogger(project=wandb_project_name,
-                            log_model='all', #True? all? best?
-                            )
+    wandb_logger = WandbLogger(log_model='all')
 
     # initialise callbacks
-    checkpoint = utils.wandb_checkpoint_init()
+    # checkpoint = utils.wandb_checkpoint_init()
     early_stopping = utils.earlystopping_init(patience=config.patience)
 
     # initialise trainer
@@ -46,8 +42,9 @@ with wandb.init(wandb_project_name):
                         logger=wandb_logger,
                         log_every_n_steps=config.log_steps,
                         max_epochs=config.max_epochs,
-                        callbacks=[checkpoint, early_stopping],
-                        deterministic=True)
+                        callbacks=[early_stopping], # ,checkpoint
+                        deterministic=True,
+                        max_time='00:03:00:00') # stop after 3h
 
     # initialise DataModule
     datamodule = ukbb_data.UKBBDataModule(data_path='/ritter/share/data/UKBB/ukb_data/',
@@ -74,4 +71,6 @@ with wandb.init(wandb_project_name):
     trainer.fit(variable_CNN, datamodule=datamodule)
 
     # test model
-    trainer.test(ckpt_path='best', datamodule=datamodule)  
+    # trainer.test(ckpt_path='best', datamodule=datamodule)  
+    
+    wandb.finish()

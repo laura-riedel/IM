@@ -137,7 +137,11 @@ class variable1DCNN(pl.LightningModule):
         self.double_conv = double_conv
         self.batch_norm = batch_norm
         self.execution = execution
+        # for tracking best validation loss during training
+        self.best_val_loss = 10000
+        # save hyperparameters
         self.save_hyperparameters()
+        # make reproducible
         utils.make_reproducible()        
         
         # define maxpool layer
@@ -250,6 +254,11 @@ class variable1DCNN(pl.LightningModule):
             self.log(f'{stage}_mae', mae) #, on_step=True, on_epoch=True, logger=True
             
         if stage == 'val':
+            if loss < self.best_val_loss:
+                # update best val loss if current loss is smaller
+                self.best_val_loss = loss
+            # log current best val loss
+            self.log('best_val_loss', self.best_val_loss)
             return {"val_loss": loss, "diff": (y - y_hat), "target": y, 'mae': mae}
     
     def validation_step(self, batch, batch_idx):
