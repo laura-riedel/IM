@@ -31,7 +31,7 @@ with wandb.init(): # project name set through yaml
     torch.set_num_threads(1)
 
     # initialise logger
-    wandb_logger = WandbLogger(log_model='all')
+    wandb_logger = WandbLogger(log_model=False)
 
     # initialise callbacks
     # checkpoint = utils.wandb_checkpoint_init()
@@ -43,6 +43,7 @@ with wandb.init(): # project name set through yaml
                         log_every_n_steps=config.log_steps,
                         max_epochs=config.max_epochs,
                         callbacks=[early_stopping], # ,checkpoint
+                        enable_checkpointing=False,
                         deterministic=True,
                         max_time='00:03:00:00') # stop after 3h
 
