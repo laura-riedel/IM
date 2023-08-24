@@ -36,7 +36,7 @@ parser.add_argument('--max_epochs', type=int, default=175, help='Enter maximum a
 parser.add_argument('--patience', type=int, default=15, help='Enter number of epochs the model continues to train without improving the validation loss without calling early stopping. Defautl: 15')
 
 # dataset setup
-parser.add_argument('--ica', type='str', default='25', help='Enter whether to load ICA25 ("25") or ICA100 ("100"). Default: "25".')
+parser.add_argument('--ica', type=str, default='25', help='Enter whether to load ICA25 ("25") or ICA100 ("100"). Default: "25".')
 parser.add_argument('--good_components', type=bool, default=True, help='Enter whether to use the good components only. Default: True.')
 
 # model hyperparameters
@@ -71,14 +71,14 @@ torch.set_num_threads(1)
 
 # initialise logger
 wandb_logger = WandbLogger(project=args.project,
-                         log_model='all', #True? all? best?
-                         )
+                          log_model=False)
+
 # # initialise logger
 # path = '../tracking/ICA25/ModelDepth1DCNN/terminaltest'
 # logger = utils.logger_init(save_dir=path)
 
 # initialise callbacks
-checkpoint = utils.wandb_checkpoint_init()
+# checkpoint = utils.wandb_checkpoint_init()
 # checkpoint = utils.checkpoint_init(save_dir=path)
 early_stopping = utils.earlystopping_init(patience=args.patience)
 
@@ -88,13 +88,14 @@ trainer = pl.Trainer(accelerator='cpu',
                     #  logger=logger,
                      log_every_n_steps=args.log_steps,
                      max_epochs=args.max_epochs,
-                     callbacks=[checkpoint, early_stopping],
+                     callbacks=[early_stopping],
+                     enable_checkpointing=False,
                      deterministic=True)
 
 # initialise DataModule
-datamodule = ukbb_data.UKBBDataModule('/ritter/share/data/UKBB/ukb_data/', # data path
-                                      args.ica,
-                                      args.good_components)
+datamodule = ukbb_data.UKBBDataModule(data_path='/ritter/share/data/UKBB/ukb_data/', # data path
+                                      ica=args.ica,
+                                      good_components=args.good_components)
 
 # initialise model
 variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=args.in_channels,
@@ -117,4 +118,6 @@ variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=args.in_channels,
 trainer.fit(variable_CNN, datamodule=datamodule)
 
 # test model
-trainer.test(ckpt_path='best', datamodule=datamodule)  
+#trainer.test(ckpt_path='best', datamodule=datamodule)  
+
+wandb.finish()
