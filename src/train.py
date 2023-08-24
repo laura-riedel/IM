@@ -7,10 +7,11 @@ from torch import optim, nn
 import pytorch_lightning as pl
 from pytorch_lightning.loggers import WandbLogger
 
-# Weights and Biases, argparse
+# Weights and Biases, argparse, sys
 import wandb
 import argparse
 import yaml
+import sys
  
 # import data + model modules
 import ukbb_data
@@ -21,7 +22,7 @@ import utils
 
 ###################
 
-with wandb.init(): # project name set through yaml
+with wandb.init() as run: # project name set through yaml
     config = wandb.config
 
     # increase reproducibility
@@ -53,20 +54,39 @@ with wandb.init(): # project name set through yaml
                                         good_components=config.good_components) 
 
     # initialise model
-    variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=config.in_channels,
-                                                kernel_size=config.kernel_size,
-                                                # activation=config.activation,
-                                                # loss=config.loss,
-                                                lr=config.lr,
-                                                depth=config.depth,
-                                                start_out=config.start_out,
-                                                stride=config.stride,
-                                                conv_dropout=config.conv_dropout,
-                                                final_dropout=config.final_dropout,
-                                                weight_decay=config.weight_decay,
-                                                double_conv=config.double_conv,
-                                                batch_norm=config.batch_norm,
-                                                execution='t') # specifying 'terminal' doesn't set dilation in conv layer
+    # catch cases where the model architecture is impossible
+    # or would cause memory issues
+    try:
+        variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=config.in_channels,
+                                                    kernel_size=config.kernel_size,
+                                                    # activation=config.activation,
+                                                    # loss=config.loss,
+                                                    lr=config.lr,
+                                                    depth=config.depth,
+                                                    start_out=config.start_out,
+                                                    stride=config.stride,
+                                                    conv_dropout=config.conv_dropout,
+                                                    final_dropout=config.final_dropout,
+                                                    weight_decay=config.weight_decay,
+                                                    double_conv=config.double_conv,
+                                                    batch_norm=config.batch_norm,
+                                                    execution='t') # specifying 'terminal' doesn't set dilation in conv layer
+    except:     
+        # add tag for later filtering
+        run.tags = run.tags + ('impossible_architecture_or_oom',) 
+        # finish run 
+        wandb.finish(exit_code=555)
+        sys.exit()
+        
+    # catch models with too many parameters
+    pytorch_total_params = sum(torch.numel(p) for p in variable_CNN.parameters())
+    # threshold: 5Mio
+    if pytorch_total_params > 5000000:
+        # add tag for later filtering
+        run.tags = run.tags + ('too_many_params',) 
+        # finish run 
+        wandb.finish(exit_code=555)
+        sys.exit()
 
     # train model
     trainer.fit(variable_CNN, datamodule=datamodule)
