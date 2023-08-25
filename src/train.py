@@ -59,7 +59,7 @@ with wandb.init() as run: # project name set through yaml
     # catch models with too many parameters
     pytorch_total_params = sum(torch.numel(p) for p in variable_CNN.parameters())
     # threshold: 5Mio
-    if pytorch_total_params > 250000:
+    if pytorch_total_params > 5000000:
         # add tag for later filtering
         run.tags = run.tags + ('too_many_params',) 
         # finish run 

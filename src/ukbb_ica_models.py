@@ -137,12 +137,16 @@ class variable1DCNN(pl.LightningModule):
         self.double_conv = double_conv
         self.batch_norm = batch_norm
         self.execution = execution
-        # for tracking best validation loss during training
-        self.best_val_loss = 10000
         # save hyperparameters
         self.save_hyperparameters()
         # make reproducible
         utils.make_reproducible()        
+        
+        # additional variables
+        # for tracking best validation loss during training
+        self.best_val_loss = 10000
+        # tracking validation step outputs
+        self.validation_step_outputs = []
         
         # define maxpool layer
         self.maxpool = nn.MaxPool1d(kernel_size=self.kernel_size, stride=self.stride)
@@ -179,10 +183,10 @@ class variable1DCNN(pl.LightningModule):
         self.encoder.append(nn.Flatten())
         
         # check: too many parameters?
-        total_encoder_params = self.get_num_parameters(self.encoder)        
-        # threshold: 250,000
-        if total_encoder_params > 250000:
-            raise Exception('More than 250,000 parameters in encoder!')
+        total_encoder_params = self.get_num_parameters(self.encoder)   
+        # threshold: 5,000,000
+        if total_encoder_params > 5000000:
+            raise Exception(f'More than 5Mio parameters in encoder! Count: {total_encoder_params}')
         
         # decoder
         flattened_dimension = self.get_flattened_dimension(self.encoder)
@@ -272,18 +276,23 @@ class variable1DCNN(pl.LightningModule):
             self.log(f'{stage}_mae', mae) #, on_step=True, on_epoch=True, logger=True
             
         if stage == 'val':
+            # track validation losses in list
+            self.validation_step_outputs.append(loss)
             return {"val_loss": loss, "diff": (y - y_hat), "target": y, 'mae': mae}
     
     def validation_step(self, batch, batch_idx):
         self.evaluate(batch, 'val')
         
-    def on_validation_epoch_end(self, outputs):
-        val_mean = torch.cat([x['val_loss'] for x in outputs]).mean(dim=0)
+    def on_validation_epoch_end(self):
+        #val_mean = torch.cat([x['val_loss'] for x in outputs]).mean(dim=0)
+        val_mean = torch.stack(self.validation_step_outputs).mean()
         # update best val loss if current loss is smaller
         if val_mean < self.best_val_loss:
             self.best_val_loss = val_mean
         # log current best val loss
         self.log('best_val_loss', self.best_val_loss)
+        # clear memory
+        self.validation_step_outputs.clear()
     
     def test_step(self, batch, batch_idx):
         self.evaluate(batch, 'test')
