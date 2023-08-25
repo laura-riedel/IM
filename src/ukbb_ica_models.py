@@ -178,6 +178,12 @@ class variable1DCNN(pl.LightningModule):
         # add a final flatten layer at the end
         self.encoder.append(nn.Flatten())
         
+        # check: too many parameters?
+        total_encoder_params = self.get_num_parameters(self.encoder)        
+        # threshold: 250,000
+        if total_encoder_params > 250000:
+            raise Exception('More than 250,000 parameters in encoder!')
+        
         # decoder
         flattened_dimension = self.get_flattened_dimension(self.encoder)
         self.decoder = nn.Sequential()
@@ -227,6 +233,12 @@ class variable1DCNN(pl.LightningModule):
         x = model(input)
         return x.size(1)
     
+    def get_num_parameters(self, model):
+        """
+        Calculate how many parameters a model uses overall.
+        """
+        return sum(torch.numel(p) for p in model.parameters())
+    
     def forward(self, x):
         # in lightning, forward defines the prediction/inference actions          
         x = self.encoder(x)
@@ -243,6 +255,12 @@ class variable1DCNN(pl.LightningModule):
         return loss
     
     def evaluate(self, batch, stage=None):
+        """Helper function that generalises the steps for validation_step and test_step.
+        Calculates loss & MAE and logs both values.
+        Input:
+            batch: current batch.
+            stage: 'val' for validation_step or 'test' for test_step.
+        """
         x, y = batch
         y_hat = self.forward(x)
         y = torch.unsqueeze(y,1)
@@ -254,15 +272,18 @@ class variable1DCNN(pl.LightningModule):
             self.log(f'{stage}_mae', mae) #, on_step=True, on_epoch=True, logger=True
             
         if stage == 'val':
-            if loss < self.best_val_loss:
-                # update best val loss if current loss is smaller
-                self.best_val_loss = loss
-            # log current best val loss
-            self.log('best_val_loss', self.best_val_loss)
             return {"val_loss": loss, "diff": (y - y_hat), "target": y, 'mae': mae}
     
     def validation_step(self, batch, batch_idx):
         self.evaluate(batch, 'val')
+        
+    def on_validation_epoch_end(self, outputs):
+        val_mean = torch.cat([x['val_loss'] for x in outputs]).mean(dim=0)
+        # update best val loss if current loss is smaller
+        if val_mean < self.best_val_loss:
+            self.best_val_loss = val_mean
+        # log current best val loss
+        self.log('best_val_loss', self.best_val_loss)
     
     def test_step(self, batch, batch_idx):
         self.evaluate(batch, 'test')
