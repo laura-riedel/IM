@@ -14,11 +14,11 @@ import yaml
 import sys
  
 # import data + model modules
-import ukbb_data
-import ukbb_ica_models
+from ukbb_package import ukbb_data
+from ukbb_package import ukbb_ica_models
 
 # import custom functions
-import utils
+from ukbb_package import utils
 
 ###################
 

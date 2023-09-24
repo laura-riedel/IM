@@ -1,0 +1,48 @@
+program: train.py
+method: grid
+project: ICA25_good_components
+metric:
+    goal: minimize
+    name: best_val_loss
+parameters:
+    # dataset set-up
+    ica:
+        value: '25'
+    good_components:
+        value: True
+    # training set-up
+    max_epochs:
+        value: 175
+    log_steps:
+        value: 10
+    patience:
+        value: 15
+    # model parameters
+    in_channels:
+        value: 21 # only good components
+    kernel_size:
+        value: 14
+    lr:
+        value: 0.0005299469651776165
+    depth:
+        value: 1
+    start_out:
+        value: 128
+    stride:
+        value: 2
+    weight_decay:
+        value: 1
+    conv_dropout:
+        values: [0, 0.1, 0.2, 0.3, 0.4]
+    final_dropout:
+        value: 0
+    double_conv:
+        value: 0
+    batch_norm:
+        values: [True, False]
+command:
+  #- /home/laurar/anaconda3/envs/cuda02
+  - ${env}
+  - python3
+  - ${program}
+  - ${args}
