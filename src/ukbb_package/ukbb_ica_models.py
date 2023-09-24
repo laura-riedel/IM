@@ -4,7 +4,7 @@ from torch import optim, nn
 import pytorch_lightning as pl
 
 # own utils module
-import utils
+from ukbb_package import utils
 
 ################################################################################################
 

@@ -10,7 +10,7 @@ from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
 import pytorch_lightning as pl
 
 # own utils module
-import utils
+from ukbb_package import utils
 
 ##################################################################################
 
@@ -29,7 +29,7 @@ class UKBBDataset(Dataset):
         self.ica = ica
         self.good_components = good_components
         self.all_data = all_data
-        self.additional_data = '../data/'
+        self.additional_data = '../../data/'
 
         # catch ica error
         if ica != '25' and ica != '100':

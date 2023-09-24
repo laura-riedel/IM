@@ -11,6 +11,10 @@ import pytorch_lightning as pl
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
 
+# import data + model modules
+from ukbb_package import ukbb_data
+from ukbb_package import ukbb_ica_models
+
 # visualisation
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -194,6 +198,98 @@ def model_run(config=None):
         # train model
         trainer.fit(variable_CNN, datamodule=datamodule)
 
+#### TRAIN + TEST MODELS WITH CONFIG DICT
+def train_model(log_path, data_path, config, device, execution='nb'):
+    """
+    Fuction for training a variable 1D-CNN model on a GPU using external config information.
+    Outputs a trained model.
+    Input:
+        log_path: path to where logs, checkpoints and data info should be saved
+        data_path: path to location where data is saved (expectations see ukbb_data.DataModule)
+        config: configuration dictionary of the form 
+                {'project': '', 'model': '', 'parameters': {all parameters except for execution}}
+        device: which GPU to run on
+        execution: whether model is called from a Jupyter Notebook ('nb') or the terminal ('t'). 
+                    Teriminal call cannot handle dilation. Default: 'nb'.
+    Output:
+        trainer: trained model
+        datamodule: PyTorch Lightning UKBB DataModule
+    """
+    full_log_path = log_path+config['project']+'/'+config['model']+'/'
+    
+    # initialise model
+    variable_CNN = ukbb_ica_models.variable1DCNN(in_channels=config['parameters']['in_channels'],
+                                                kernel_size=config['parameters']['kernel_size'],
+                                                lr=config['parameters']['lr'],
+                                                depth=config['parameters']['depth'],
+                                                start_out=config['parameters']['start_out'],
+                                                stride=config['parameters']['stride'],
+                                                conv_dropout=config['parameters']['conv_dropout'],
+                                                final_dropout=config['parameters']['final_dropout'],
+                                                weight_decay=config['parameters']['weight_decay'],
+                                                dilation=config['parameters']['dilation'],
+                                                double_conv=config['parameters']['double_conv'],
+                                                batch_norm=config['parameters']['batch_norm'],
+                                                execution=execution)
+
+    # initialise logger
+    logger = logger_init(save_dir=full_log_path)
+
+    # set callbacks
+    early_stopping = earlystopping_init(patience=config['parameters']['patience'])
+
+    checkpoint = checkpoint_init(save_dir=full_log_path)
+
+    # initialise trainer
+    trainer = trainer_init(device=device,
+                                logger=logger,
+                                log_steps=config['parameters']['log_steps'],
+                                max_epochs=config['parameters']['max_epochs'],
+                                callbacks=[early_stopping, checkpoint])
+
+    # initialise DataModule
+    datamodule = ukbb_data.UKBBDataModule(data_path,
+                                         ica=config['parameters']['ica'],
+                                         good_components=config['parameters']['good_components'])
+
+    # train model
+    trainer.fit(variable_CNN, datamodule=datamodule)
+    print('Training complete.')
+
+    # save info on which data was used + what the train/val/test split was
+    save_data_info(path=full_log_path, datamodule=datamodule)
+    
+    return trainer, datamodule
+
+def test_model(trainer, datamodule, config):
+    """
+    Fuction for using the same model and testing set-up using external config information.
+    Outputs a test score and a plot visualising the training progression.
+    Input:
+        trainer: the trained model
+        datamodule: PyTorch Lightning DataModule instance
+        config: configuration dictionary of the form 
+                {'project': '', 'model': '', 'parameters': {all parameters except for execution}}
+    """
+    model_info = config['model']
+    ica_info = config['parameters']['ica']
+    if config['parameters']['good_components'] == True:
+        gc = 'good components only'
+    else:
+        gc = 'all components'
+    if config['project'] == 'FinalModels_IM':
+        data_info = '(data subset)'
+    else:
+        data_info = '(full data)'
+    
+    # test model
+    print(f'\nTesting model "{model_info}" {data_info}...')
+    trainer.test(ckpt_path='best', datamodule=datamodule)
+    
+    # visualise training
+    print(f'\nVisualise training of model "{model_info}" {data_info}...')    
+    metrics = get_current_metrics(trainer, show=True)
+    plot_training(data=metrics, title=f'Training visualisation of the ICA{ica_info} 1D-CNN with {gc} {data_info}.')
 
 #### VISUALISATIONS
 def get_current_metrics(trainer, show=False):
