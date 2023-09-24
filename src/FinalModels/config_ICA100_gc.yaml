@@ -1,0 +1,23 @@
+project: 'FinalModels_IM'
+model: 'ICA100_gc'
+parameters:
+    # dataset set-up
+    ica: '100'
+    good_components: True    
+    # training set-up
+    max_epochs: 175
+    log_steps: 10
+    patience: 15
+    # model parameters
+    in_channels: 55 # only good components
+    kernel_size: 9
+    lr: 0.00020177405202416644
+    depth: 1
+    start_out: 128
+    stride: 5
+    weight_decay: 0.1
+    dilation: 1
+    conv_dropout: 0
+    final_dropout: 0
+    double_conv: True
+    batch_norm: True
