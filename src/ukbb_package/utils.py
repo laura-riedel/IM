@@ -325,6 +325,15 @@ def get_saved_metrics(logging_path, show=False):
     return metrics
 
 def load_datainfo(path_to_data_info, info_type):
+    """
+    Loads information from the data_info directory.
+    Input:
+        path_to_data_info: path to where data_info is saved (without data_info itself in path)
+        info_type: 'train_idx', 'val_idx', 'test_idx', or 'overview'
+    Output:
+        info: if info_type is one of the split indices: numpy array of the split indices
+              if info_type is overview: overview.csv as dataframe  
+    """
     if info_type.endswith('idx'):
         info = np.loadtxt(path_to_data_info+'data_info/'+info_type+'.csv', dtype='int')
     else:
