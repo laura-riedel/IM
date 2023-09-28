@@ -291,7 +291,7 @@ def test_model(trainer, datamodule, config):
     metrics = get_current_metrics(trainer, show=True)
     plot_training(data=metrics, title=f'Training visualisation of the ICA{ica_info} 1D-CNN with {gc} {data_info}.')
 
-#### VISUALISATIONS
+#### LOADING DATA
 def get_current_metrics(trainer, show=False):
     """
     Gets the metrics of a current trainer object (aka the training + validation information
@@ -340,6 +340,65 @@ def load_datainfo(path_to_data_info, info_type):
         info = pd.read_csv(path_to_data_info+'data_info/overview.csv')
     return info
 
+def get_metadata(path_to_data_info, ukbb_data_path):
+    """
+    Get additional information about participants used in model training/testing; 
+    also add in which split a participant was present.
+    Input:
+        path_to_data_info: path to where data_info is saved (without data_info itself in path)
+        ukbb_data_path: path to ukb_data directory (ukb_data included). E.g. 'ritter/share/data/UKBB/ukb_data'.
+    Output:
+        meta_df: overview dataframe containing the IDs of included participants
+                with additional information regarding which split they were in + additional metadata
+    """
+    data_overview = load_datainfo(path_to_data_info, 'overview')
+    train_idx = load_datainfo(path_to_data_info, 'train_idx')
+    val_idx = load_datainfo(path_to_data_info, 'val_idx')
+    test_idx = load_datainfo(path_to_data_info, 'test_idx')
+    # add split information to items in data_overview
+    for idx in train_idx:
+        data_overview.loc[idx, 'split'] = 'train'
+    for idx in val_idx:
+        data_overview.loc[idx, 'split'] = 'val'
+    for idx in test_idx:
+        data_overview.loc[idx, 'split'] = 'test'
+    # META INFORMATION
+    # match additional info with subject IDs
+    # get subject IDs, rename column for later merge
+    ids_df = pd.read_csv(ukbb_data_path+'table/ukb_imaging_filtered_eids.txt')
+    ids_df.rename(columns={'f.eid': 'eid'}, inplace=True)
+    # get bmi 
+    bmi_df = pd.read_csv(ukbb_data_path+'table/targets/bmi.tsv', sep='\t', names=['bmi'])
+    # get digit substitution 
+    digit_df = pd.read_csv(ukbb_data_path+'table/targets/digit-substitution.tsv', sep='\t', names=['digit substitution'])
+    # get education 
+    education_df = pd.read_csv(ukbb_data_path+'table/targets/edu.tsv', sep='\t', names=['education'])
+    # get fluid intelligence 
+    fluid_int_df = pd.read_csv(ukbb_data_path+'table/targets/fluid-intelligence.tsv', sep='\t', names=['fluid intelligence'])
+    # get grip 
+    grip_df = pd.read_csv(ukbb_data_path+'table/targets/grip.tsv', sep='\t', names=['grip'])
+    # get depressive episode
+    depressive_ep_df = pd.read_csv(ukbb_data_path+'table/targets/icd-f32-depressive-episode.tsv', sep='\t', names=['depressive episode'])
+    # get depressive episode
+    depression_all_df = pd.read_csv(ukbb_data_path+'table/targets/icd-f32-f33-all-depression.tsv', sep='\t', names=['all depression'])
+    # get recurrent depressive order
+    depressive_rec_df = pd.read_csv(ukbb_data_path+'table/targets/icd-f33-recurrent-depressive-disorder.tsv', sep='\t', names=['recurrent depressive disorder'])
+    # get multiple sclerosis
+    ms_df = pd.read_csv(ukbb_data_path+'table/targets/icd-g35-multiple-sclerosis.tsv', sep='\t', names=['multiple sclerosis'])
+    # get sex 
+    sex_df = pd.read_csv(ukbb_data_path+'table/targets/sex.tsv', sep='\t', names=['sex'])
+    # get weekly beer
+    weekly_beer_df = pd.read_csv(ukbb_data_path+'table/targets/weekly-beer.tsv', sep='\t', names=['weekly beer'])
+    # get ethnicity
+
+    # combine additional information
+    variables = [ids_df, bmi_df, digit_df, education_df, fluid_int_df, grip_df, depressive_ep_df, depression_all_df, depressive_rec_df, ms_df, sex_df, weekly_beer_df]
+    meta_df = pd.concat(variables, axis=1)
+    # merge with data_overview
+    meta_df = data_overview.merge(meta_df, on='eid', how='left')
+    return meta_df
+    
+#### VISUALISATIONS
 def plot_training(data, yscale='log', title='', xmin=None, xmax=None):
     """
     Plots the training process of a model. 
