@@ -390,9 +390,9 @@ def get_metadata(path_to_data_info, ukbb_data_path):
     # get weekly beer
     weekly_beer_df = pd.read_csv(ukbb_data_path+'table/targets/weekly-beer.tsv', sep='\t', names=['weekly beer'])
     # get ethnicity
-
+    ethnicity_df = pd.read_csv(ukbb_data_path+'table/features/genetic-pcs.tsv', sep='\t', usecols=[0,1,2], names=['genetic pc 1', 'genetic pc 2', 'genetic pc 3'])
     # combine additional information
-    variables = [ids_df, bmi_df, digit_df, education_df, fluid_int_df, grip_df, depressive_ep_df, depression_all_df, depressive_rec_df, ms_df, sex_df, weekly_beer_df]
+    variables = [ids_df, bmi_df, digit_df, education_df, fluid_int_df, grip_df, depressive_ep_df, depression_all_df, depressive_rec_df, ms_df, sex_df, weekly_beer_df, ethnicity_df]
     meta_df = pd.concat(variables, axis=1)
     # merge with data_overview
     meta_df = data_overview.merge(meta_df, on='eid', how='left')
