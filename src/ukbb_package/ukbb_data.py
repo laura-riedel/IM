@@ -105,7 +105,7 @@ class UKBBDataset(Dataset):
         timeseries = timeseries.float()
         label = torch.tensor(label)
         label = label.float()
-        return timeseries, label        
+        return timeseries, label, sub_id        
     
 class UKBBDataModule(pl.LightningDataModule):
     """
@@ -148,6 +148,7 @@ class UKBBDataModule(pl.LightningDataModule):
         self.train_sampler = SubsetRandomSampler(self.train_idx, generator=self.g)
         self.val_sampler = SubsetRandomSampler(self.val_idx, generator=self.g)
         self.test_sampler = SubsetRandomSampler(self.test_idx, generator=self.g)
+        self.predict_sampler = SubsetRandomSampler(self.val_idx+self.test_idx, generator=self.g)
     
     def general_dataloader(self, data_part, data_sampler):
         data_loader = DataLoader(
@@ -170,3 +171,6 @@ class UKBBDataModule(pl.LightningDataModule):
     
     def test_dataloader(self):
         return self.general_dataloader(self.data, self.test_sampler)
+    
+    def predict_dataloader(self):
+        return self.general_dataloader(self.data, self.predict_sampler)

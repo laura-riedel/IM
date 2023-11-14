@@ -61,7 +61,7 @@ class simple1DCNN(pl.LightningModule):
         
     def training_step(self, batch, batch_idx): 
         # training_step defines the train loop, independent of forward
-        x, y = batch
+        x, y, _ = batch
         y_hat = self.forward(x)
         y = torch.unsqueeze(y,1)
         loss = self.loss(y_hat, y)
@@ -70,7 +70,7 @@ class simple1DCNN(pl.LightningModule):
         return loss
     
     def evaluate(self, batch, stage=None):
-        x, y = batch
+        x, y, _ = batch
         y_hat = self.forward(x)
         y = torch.unsqueeze(y,1)
         loss = self.loss(y_hat, y)
@@ -250,13 +250,20 @@ class variable1DCNN(pl.LightningModule):
         
     def training_step(self, batch, batch_idx): 
         # training_step defines the train loop, independent of forward
-        x, y = batch
+        x, y, _ = batch
         y_hat = self.forward(x)
         y = torch.unsqueeze(y,1)
         loss = self.loss(y_hat, y)
         
         self.log('train_loss', loss) #, on_step=True, on_epoch=True, logger=True
         return loss
+    
+    def predict_step(self, batch, batch_idx):
+        # step function called during predict()
+        with torch.no_grad():
+            x, y, sub_id = batch
+            y_hat = self.forward(x)
+            return sub_id, y_hat
     
     def evaluate(self, batch, stage=None):
         """Helper function that generalises the steps for validation_step and test_step.
@@ -265,7 +272,7 @@ class variable1DCNN(pl.LightningModule):
             batch: current batch.
             stage: 'val' for validation_step or 'test' for test_step.
         """
-        x, y = batch
+        x, y, _ = batch
         y_hat = self.forward(x)
         y = torch.unsqueeze(y,1)
         loss = self.loss(y_hat, y)
