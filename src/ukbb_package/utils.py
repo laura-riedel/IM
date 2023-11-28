@@ -198,7 +198,7 @@ def model_run(config=None):
         # train model
         trainer.fit(variable_CNN, datamodule=datamodule)
 
-#### TRAIN + TEST MODELS WITH CONFIG DICT
+#### TRAIN + TEST MODELS WITH CONFIG DICT; PREDICT AGE WITH TRAINED MODEL
 def train_model(log_path, data_path, config, device, execution='nb'):
     """
     Fuction for training a variable 1D-CNN model on a GPU using external config information.
@@ -212,7 +212,8 @@ def train_model(log_path, data_path, config, device, execution='nb'):
         execution: whether model is called from a Jupyter Notebook ('nb') or the terminal ('t'). 
                     Teriminal call cannot handle dilation. Default: 'nb'.
     Output:
-        trainer: trained model
+        trainer: the trainer instance of the model model
+        variable_CNN: the trained model
         datamodule: PyTorch Lightning UKBB DataModule
     """
     full_log_path = log_path+config['project']+'/'+config['model']+'/'
@@ -259,15 +260,42 @@ def train_model(log_path, data_path, config, device, execution='nb'):
     # save info on which data was used + what the train/val/test split was
     save_data_info(path=full_log_path, datamodule=datamodule)
     
-    return trainer, datamodule
+    return trainer, variable_CNN, datamodule
+
+def predict_w_model(trainer, model, datamodule, log_path):
+    """
+    Function for predicting the brain age of subjects in the validation + test set
+    using a previously trained model. Automatically saves predictions in data_info.
+    Input:
+        trainer: the trainer instance of the model model
+        model: the trained model
+        datamodule: PyTorch Lightning UKBB DataModule instance
+        log_path: path to where logs, checkpoints and data info are saved
+    Output:
+        preds_df: dataframe with predicted ages
+    """
+    model.eval()
+    predictions = trainer.predict(model, datamodule)
+    preds_df = pd.DataFrame(columns=['eid','batch_nb','predicted_age'])
+    count = 0
+    for batch_number, batch in enumerate(predictions):
+        for i in range(len(batch[0])):
+            preds_df.loc[count,'eid'] = int(batch[0][i])
+            preds_df.loc[count,'batch_nb'] = batch_number
+            preds_df.loc[count,'predicted_age'] = float(batch[1][i])       
+            count += 1
+    
+    preds_df.to_csv(log_path+'data_info/predictions.csv', index=False)
+    return preds_df
+    
 
 def test_model(trainer, datamodule, config):
     """
     Fuction for using the same model and testing set-up using external config information.
     Outputs a test score and a plot visualising the training progression.
     Input:
-        trainer: the trained model
-        datamodule: PyTorch Lightning DataModule instance
+        trainer: the trainer instance of the model model
+        datamodule: PyTorch Lightning UKBB DataModule instance
         config: configuration dictionary of the form 
                 {'project': '', 'model': '', 'parameters': {all parameters except for execution}}
     """
