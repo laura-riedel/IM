@@ -20,7 +20,7 @@ activation: !!python/object:torch.nn.modules.activation.ReLU
   _state_dict_hooks: !!python/object/apply:collections.OrderedDict
   - []
   inplace: false
-  training: true
+  training: false
 all_data: true
 batch_norm: true
 batch_size: 128
@@ -57,7 +57,7 @@ loss: !!python/object:torch.nn.modules.loss.MSELoss
   _state_dict_hooks: !!python/object/apply:collections.OrderedDict
   - []
   reduction: mean
-  training: true
+  training: false
 lr: 0.00020177405202416644
 seed: 43
 start_out: 128
