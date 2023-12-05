@@ -425,6 +425,24 @@ def get_metadata(path_to_data_info, ukbb_data_path):
     # merge with data_overview
     meta_df = data_overview.merge(meta_df, on='eid', how='left')
     return meta_df
+
+#### OTHER HELPER FUNCTIONS
+def calculate_bag(df, single=False):
+    """
+    Calculate the brain age gap (BAG) for each participant in the dataframe.
+    Input:
+        df: dataframe including true and predicted ages
+        single: Boolean indicating whether BAGs should be calculated for
+                a single (=TRUE) ICA modality or both (=FALSE).
+    Output:
+        df: dataframe with additional BAG column(s)
+    """
+    if single:
+        df['bag'] = df['age'] - df['predicted_age']
+    else:
+        df['bag_ICA25'] = df['age'] - df['predicted_age_ICA25']
+        df['bag_ICA100'] = df['age'] - df['predicted_age_ICA100']
+    return df
     
 #### VISUALISATIONS
 def plot_training(data, yscale='log', title='', xmin=None, xmax=None):
