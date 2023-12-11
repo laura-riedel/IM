@@ -448,10 +448,10 @@ def calculate_bag(df, single=False):
         df: dataframe with additional BAG column(s)
     """
     if single:
-        df['bag'] = df['age'] - df['predicted_age']
+        df['bag'] = df['predicted_age'] - df['age']
     else:
-        df['bag_ICA25'] = df['age'] - df['predicted_age_ICA25']
-        df['bag_ICA100'] = df['age'] - df['predicted_age_ICA100']
+        df['bag_ICA25'] = df['predicted_age_ICA25'] - df['age']
+        df['bag_ICA100'] = df['predicted_age_ICA100'] - df['age']
     return df
     
 #### VISUALISATIONS
