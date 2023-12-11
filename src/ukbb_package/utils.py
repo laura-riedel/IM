@@ -212,7 +212,7 @@ def train_model(log_path, data_path, config, device, execution='nb'):
         execution: whether model is called from a Jupyter Notebook ('nb') or the terminal ('t'). 
                     Teriminal call cannot handle dilation. Default: 'nb'.
     Output:
-        trainer: the trainer instance of the model model
+        trainer: the trainer instance of the model 
         variable_CNN: the trained model
         datamodule: PyTorch Lightning UKBB DataModule
     """
@@ -368,13 +368,14 @@ def load_datainfo(path_to_data_info, info_type):
         info = pd.read_csv(path_to_data_info+'data_info/overview.csv')
     return info
 
-def get_metadata(path_to_data_info, ukbb_data_path):
+def get_metadata(path_to_data_info, ukbb_data_path, index=True):
     """
     Get additional information about participants used in model training/testing; 
     also add in which split a participant was present.
     Input:
         path_to_data_info: path to where data_info is saved (without data_info itself in path)
         ukbb_data_path: path to ukb_data directory (ukb_data included). E.g. 'ritter/share/data/UKBB/ukb_data'.
+        index: whether an item is retrieved based on index (=True) or based on subject id (=False). Default: True.
     Output:
         meta_df: overview dataframe containing the IDs of included participants
                 with additional information regarding which split they were in + additional metadata
@@ -384,12 +385,20 @@ def get_metadata(path_to_data_info, ukbb_data_path):
     val_idx = load_datainfo(path_to_data_info, 'val_idx')
     test_idx = load_datainfo(path_to_data_info, 'test_idx')
     # add split information to items in data_overview
-    for idx in train_idx:
-        data_overview.loc[idx, 'split'] = 'train'
-    for idx in val_idx:
-        data_overview.loc[idx, 'split'] = 'val'
-    for idx in test_idx:
-        data_overview.loc[idx, 'split'] = 'test'
+    if index:
+        for idx in train_idx:
+            data_overview.loc[idx, 'split'] = 'train'
+        for idx in val_idx:
+            data_overview.loc[idx, 'split'] = 'val'
+        for idx in test_idx:
+            data_overview.loc[idx, 'split'] = 'test'
+    else:
+        for idx in train_idx:
+            data_overview.loc[data_overview['eid'] == idx, 'split'] = 'train'
+        for idx in val_idx:
+            data_overview.loc[data_overview['eid'] == idx, 'split'] = 'val'
+        for idx in test_idx:
+            data_overview.loc[data_overview['eid'] == idx, 'split'] = 'test'
     # META INFORMATION
     # match additional info with subject IDs
     # get subject IDs, rename column for later merge
@@ -420,6 +429,7 @@ def get_metadata(path_to_data_info, ukbb_data_path):
     # get ethnicity
     ethnicity_df = pd.read_csv(ukbb_data_path+'table/features/genetic-pcs.tsv', sep='\t', usecols=[0,1,2], names=['genetic pc 1', 'genetic pc 2', 'genetic pc 3'])
     # combine additional information
+    # important to combine BEFORE merging with data_overview in order to keep the correct ID mapping
     variables = [ids_df, bmi_df, digit_df, education_df, fluid_int_df, grip_df, depressive_ep_df, depression_all_df, depressive_rec_df, ms_df, sex_df, weekly_beer_df, ethnicity_df]
     meta_df = pd.concat(variables, axis=1)
     # merge with data_overview
