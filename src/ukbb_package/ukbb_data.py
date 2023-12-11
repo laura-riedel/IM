@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import zscore
 import math
+import random
 
 # PyTorch modules
 import torch
@@ -22,6 +23,7 @@ class UKBBDataset(Dataset):
         ica: whether to load ICA25 ('25') or ICA100 ('100'). Expects string. Default: 25.
         good_components: boolean flag to indicate whether to use only the good components or all components. Default: False.
         all_data: boolean flag to indicate whether to use all data or only a subset of 100 samples. Default: True.
+        index: whether an item is retrieved based on index (=True) or based on subject id (=False). Default: True.
     """
     def __init__(self, data_path, ica='25', good_components=False, all_data=True):
         # save data path + settings
@@ -75,15 +77,22 @@ class UKBBDataset(Dataset):
     def __len__(self):
         return len(self.labels)
     
-    def __getitem__(self, idx):
+    def __getitem__(self, sub_id):
+        # if index=True, idx denotes the dataset row index
+        # if index=False, idx denotes the participant's id
         # get subject ID
-        sub_id = self.labels.loc[idx,'eid']
+        # sub_id = self.labels.loc[idx,'eid']
         # get label (age)
-        label = self.labels.loc[idx,'age']
+        # label = self.labels.loc[idx,'age']
         #label = int(label)
-        
+
         # get filename/path to timeseries
-        ts_path = self.labels.loc[idx,self.location_column]
+        # ts_path = self.labels.loc[idx,self.location_column]
+        
+        # get label (age)
+        label = self.labels.loc[self.labels['eid'] == sub_id, 'age'].values[0]
+        # get filname/path to timeseries
+        ts_path = self.labels.loc[self.labels['eid'] == sub_id,self.location_column].values[0]
         
         # load + standardise timeseries
         ## if good_components = True, only load good components
@@ -120,6 +129,7 @@ class UKBBDataModule(pl.LightningDataModule):
         self.good_components = good_components
         self.all_data = all_data
         self.batch_size = batch_size
+        self.seed = seed
         # increase reproducibility by setting a generator 
         self.g = torch.Generator() # device='cuda'
         self.g.manual_seed(seed)
@@ -129,21 +139,27 @@ class UKBBDataModule(pl.LightningDataModule):
         return int(np.floor(split_ratio * dataset_size))
    
     def setup(self, stage=None):
+        utils.make_reproducible(self.seed)
         # runs on all GPUs
         # load data
         self.data = UKBBDataset(self.data_path, self.ica, self.good_components, self.all_data)
         
-        # split data      
-        # create indices
-        dataset_size = len(self.data)
-        indices = list(range(dataset_size))
+        # split data
+        # dataset_size = len(self.data)
+        # indices = list(range(dataset_size))
+        dataset_size = self.data.labels['eid'].shape[0]
+        indices = list(self.data.labels['eid'])            
+        
         # shuffle
         np.random.shuffle(indices)
+        indices = list(indices)
         # get list of split indices, feed to samplers
         split_index = self.get_split_index(0.8, dataset_size)
         self.train_idx, remain_idx = indices[:split_index], indices[split_index:]
         remain_split_index = self.get_split_index(0.5, len(remain_idx))
         self.val_idx, self.test_idx = remain_idx[:remain_split_index], remain_idx[remain_split_index:]
+        
+        assert len(self.val_idx)+len(self.test_idx) == len(self.val_idx+self.test_idx), 'Idx addition error'
         
         self.train_sampler = SubsetRandomSampler(self.train_idx, generator=self.g)
         self.val_sampler = SubsetRandomSampler(self.val_idx, generator=self.g)
