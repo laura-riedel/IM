@@ -454,6 +454,39 @@ def calculate_bag(df, single=False):
         df['bag_ICA25'] = df['predicted_age_ICA25'] - df['age']
         df['bag_ICA100'] = df['predicted_age_ICA100'] - df['age']
     return df
+
+def detrend_bag(df, single=False):
+    """
+    Remove the linear effect in the brain age gap (BAG) for each participant in the dataframe.
+    Input:
+        df: dataframe including true and predicted ages & calculated BAGs
+        single: Boolean indicating whether linear effect should be removed for
+                a single (=TRUE) ICA modality or both (=FALSE).
+    Output:
+        df: dataframe with additional detrended BAG column(s)
+    """
+    X = np.array(df.loc[:,'age'], ndmin=2)
+    X = np.reshape(X, (-1,1))
+    if single:
+        y = df.loc[:,'bag']
+        model = LinearRegression()
+        model.fit(X, y)
+        trend = model.predict(X)
+        df.loc[:,'bag_detrended'] = y-trend
+    else: 
+        # ICA25
+        y_25 = df.loc[:,'bag_ICA25']
+        model_25 = LinearRegression()
+        model_25.fit(X, y_25)
+        trend_25 = model_25.predict(X)
+        df.loc[:,'bag_ICA25_detrended'] = y_25-trend_25
+        # ICA100
+        y_100 = df.loc[:,'bag_ICA100']
+        model_100 = LinearRegression()
+        model_100.fit(X, y_100)
+        trend_100 = model_100.predict(X)
+        df.loc[:,'bag_ICA100_detrended'] = y_100-trend_100
+    return df
     
 #### VISUALISATIONS
 def plot_training(data, yscale='log', title='', xmin=None, xmax=None):
