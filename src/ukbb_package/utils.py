@@ -4,6 +4,7 @@ import os
 import random
 import logging
 from typing import Any, Dict, Generator, Optional
+from sklearn.linear_model import LinearRegression
 
 # Pytorch etc
 import torch
@@ -471,3 +472,31 @@ def plot_training(data, yscale='log', title='', xmin=None, xmax=None):
     plt.title(title)
     plt.show()
 
+def plot_training_forreport(data, yscale='log', title=''):
+    """
+    Plots the training process of a model -- nicer version for using in report. 
+    Expects the metrics_df from get_metrics as input.
+    """
+    xmin, xmax, xstep, xrange = get_plot_values(data)
+    # only include train + validation values in plot
+    visualisation = sns.relplot(data=data.loc[xmin:xmax,'train_loss':'val_mae'], kind='line', height=5, aspect=1.5)
+    # set scale and title
+    visualisation.set(yscale=yscale)
+    plt.xlabel('Training epoch')
+    plt.xticks(xrange, labels=[str(i) for i in xrange])
+    yscale_label = ''
+    if yscale == 'log':
+        yscale_label = ' (log scale)'
+    plt.ylabel('MSE loss'+yscale_label)
+    plt.title(title)
+    plt.show()
+
+def get_plot_values(df):
+    """
+    Get values to make nice plotting of final model training easier.
+    """
+    xmin = df.index.min()
+    xmax = df.index.max()
+    xstep = int(np.floor(xmax/10))
+    xrange = [i for i in range(xmin, xmax, xstep)]
+    return xmin, xmax, xstep, xrange
