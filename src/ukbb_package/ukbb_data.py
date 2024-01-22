@@ -77,18 +77,7 @@ class UKBBDataset(Dataset):
     def __len__(self):
         return len(self.labels)
     
-    def __getitem__(self, sub_id):
-        # if index=True, idx denotes the dataset row index
-        # if index=False, idx denotes the participant's id
-        # get subject ID
-        # sub_id = self.labels.loc[idx,'eid']
-        # get label (age)
-        # label = self.labels.loc[idx,'age']
-        #label = int(label)
-
-        # get filename/path to timeseries
-        # ts_path = self.labels.loc[idx,self.location_column]
-        
+    def __getitem__(self, sub_id):       
         # get label (age)
         label = self.labels.loc[self.labels['eid'] == sub_id, 'age'].values[0]
         # get filname/path to timeseries
@@ -145,8 +134,6 @@ class UKBBDataModule(pl.LightningDataModule):
         self.data = UKBBDataset(self.data_path, self.ica, self.good_components, self.all_data)
         
         # split data
-        # dataset_size = len(self.data)
-        # indices = list(range(dataset_size))
         dataset_size = self.data.labels['eid'].shape[0]
         indices = list(self.data.labels['eid'])            
         
