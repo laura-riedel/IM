@@ -1,0 +1,12 @@
+name: cuda02
+channels:
+  - defaults
+dependencies:
+  - pip
+  - jupyterlab
+  - scikit-learn
+  - pandas
+  - seaborn
+  - matplotlib
+  - ipywidgets
+prefix: /home/laurar/anaconda3/envs/cuda02
