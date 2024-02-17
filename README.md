@@ -10,6 +10,15 @@ In the first step, I investigated whether this lightweight 1D-CNN approach using
 Finding potential, I created a `variable1DCNN` model class which allows flexible modifications for both broader architectural settings as well as typical hyperparameters. Using this model class, I performed a big hyperparameter sweep for both data modalities in order to find the best possible settings to train well-performing 1D-CNN models (--> [HyperparameterSweep](src/HyperparameterSweep/)).
 In the last step, I used the uncovered architectural settings and hyperparameters that lead to the best validation results during the sweep to train one `variable1DCNN` model for each data modality and analysed their performance (--> [FinalModels](src/FinalModels/)).
 
+### The `variable1DCNN`
+![variableCNN_tuning_vers4](https://github.com/laura-riedel/IM/assets/95028873/4f8f4d4d-d204-4217-8357-94183d8356da)
+Illustration of a `variable1DCNN` model architecture which takes ICA
+timeseries as input and predicts (i.e., regresses) a participant’s age as output. The
+`variable1DCNN` consists of compulsory as well as optional elements. Compulsory
+elements are denoted by solid lines, optional elements by dashed lines. For a model
+with depth _d_, the setup of the complex layer is repeated _d_ − 1 times. Variables
+are determined through external setting. 
+
 ## Structure
 - **data:** doesn't contain the data itself but supplementary files
 - **figures:** figures created for my report (includes dataset age distribution, model training development, BAG illustrations)
