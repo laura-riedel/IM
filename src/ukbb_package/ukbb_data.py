@@ -23,7 +23,6 @@ class UKBBDataset(Dataset):
         ica: whether to load ICA25 ('25') or ICA100 ('100'). Expects string. Default: 25.
         good_components: boolean flag to indicate whether to use only the good components or all components. Default: False.
         all_data: boolean flag to indicate whether to use all data or only a subset of 100 samples. Default: True.
-        index: whether an item is retrieved based on index (=True) or based on subject id (=False). Default: True.
     """
     def __init__(self, data_path, ica='25', good_components=False, all_data=True):
         # save data path + settings
